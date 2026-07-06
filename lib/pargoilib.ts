@@ -34,6 +34,36 @@ function getPargoiClient() {
     return originalUrl.replace("https://www.tiktok.com/v2/auth/authorize/", activeAuthBase);
   };
 
+  // Monkey patch getAccessToken to support an optional codeVerifier for PKCE compliance
+  client.getAccessToken = async function (code: string, codeVerifier?: string) {
+    const params = new URLSearchParams({
+      client_key: clientKey,
+      client_secret: clientSecret,
+      code,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri,
+    });
+
+    if (codeVerifier) {
+      params.append('code_verifier', codeVerifier);
+    }
+
+    // @ts-expect-error - using internal baseUrl property
+    const url = `${this.baseUrl || activeApiBase}/oauth/token/`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`TikTok token exchange failed: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  };
+
   return client;
 }
 

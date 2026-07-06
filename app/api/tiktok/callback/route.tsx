@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
 
     const cookieStore = await cookies();
     const savedState = cookieStore.get('tiktok_oauth_state')?.value;
+    const codeVerifier = cookieStore.get('tiktok_oauth_code_verifier')?.value;
 
     if (!state || state !== savedState) {
         return NextResponse.json({ error: 'OAuth state security verification failed.' }, { status: 403 });
@@ -21,7 +22,8 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const tokenPayload = await pargoiClient.getAccessToken(code);
+        // @ts-expect-error - we monkey-patched getAccessToken to accept codeVerifier as secondary parameter
+        const tokenPayload = await pargoiClient.getAccessToken(code, codeVerifier);
         cookieStore.set('tk_access_token', tokenPayload.access_token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -29,6 +31,7 @@ export async function GET(req: NextRequest) {
         });
 
         cookieStore.delete('tiktok_oauth_state');
+        cookieStore.delete('tiktok_oauth_code_verifier');
 
         return new NextResponse(
             `<!DOCTYPE html>
