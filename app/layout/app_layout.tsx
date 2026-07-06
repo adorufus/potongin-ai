@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./sidebar";
 import Header from "./header";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AuthView from "../auth/page";
 
 export default function AppLayout({
@@ -25,6 +25,20 @@ export default function AppLayout({
 
   const [authView, setAuthView] = useState<'landing' | 'login' | 'signup'>('landing');
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const origin = event.origin;
+      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
+        return;
+      }
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        setIsTiktokAuthenticated(true);
+        setAuthView('landing');
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   const activePage =
     pathname === "/" ? "/dashboard" : pathname;
@@ -32,6 +46,13 @@ export default function AppLayout({
   function handlePageChange(page: string) {
     router.push(page);
   }
+
+  const handleLogout = () => {
+    localStorage.removeItem("tk_access_token");
+    localStorage.removeItem("potongin_user_name");
+    setIsTiktokAuthenticated(false);
+    router.push("/");
+  };
 
   if (!isTiktokAuthenticated) {
     return (
@@ -58,7 +79,7 @@ export default function AppLayout({
         onPageChange={handlePageChange}
         plan="Free"
         onNewProject={() => { }}
-        onLogout={() => { }}
+        onLogout={handleLogout}
       />
 
       <div className="flex-grow pl-[280px] flex flex-col min-h-screen">
