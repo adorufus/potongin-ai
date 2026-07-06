@@ -75,8 +75,9 @@ export async function GET(req: NextRequest) {
         const tokenPayload = await client.getAccessToken(code, codeVerifier);
         cookieStore.set('tk_access_token', tokenPayload.access_token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: true,
+            sameSite: 'none',
+            maxAge: 60 * 60 * 24 * 30, // 30 days
         });
 
         cookieStore.delete('tiktok_oauth_state');

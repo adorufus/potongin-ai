@@ -26,22 +26,22 @@ export async function GET(req: NextRequest) {
     const cookieStore = await cookies();
     cookieStore.set("tiktok_oauth_state", state, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
       maxAge: 60 * 10, // 10 minutes
     });
 
     cookieStore.set("tiktok_oauth_code_verifier", code_verifier, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
       maxAge: 60 * 10, // 10 minutes
     });
 
     cookieStore.set("tiktok_oauth_sandbox", useSandbox ? "true" : "false", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none",
       maxAge: 60 * 10, // 10 minutes
     });
 
