@@ -1,12 +1,14 @@
 import {TikTokClient} from "pargoi";
 
-function getPargoiClient() {
+export function getPargoiClient(useSandboxOverride?: boolean) {
   const clientKey = process.env.TIKTOK_CLIENT_KEY || "dummy_key";
   const clientSecret = process.env.TIKTOK_CLIENT_SECRET || "dummy_secret";
   const redirectUri = process.env.TIKTOK_REDIRECT_URI || "http://localhost:3000/api/tiktok/callback";
 
-  // Sandbox or production selection (defaults to true / sandbox mode first)
-  const useSandbox = process.env.TIKTOK_USE_SANDBOX !== "false";
+  // Sandbox or production selection (defaults to false / production mode first, unless env is explicitly 'true')
+  const useSandbox = useSandboxOverride !== undefined 
+    ? useSandboxOverride 
+    : process.env.TIKTOK_USE_SANDBOX === "true";
 
   const sandboxApiBase = process.env.TIKTOK_SANDBOX_API_BASE || "https://open-sandbox.tiktokapis.com/v2";
   const prodApiBase = process.env.TIKTOK_PROD_API_BASE || "https://open.tiktokapis.com/v2";

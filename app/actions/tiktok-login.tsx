@@ -16,7 +16,7 @@ export async function loginWithTikTok() {
     maxAge: 60 * 10, // 10 minutes
   })
 
-  const scopes = ['user.info.basic', 'video.list', 'video.upload', 'video.publish']
+  const scopes = ['user.info.basic', 'video.upload', 'video.publish']
   const authorizationUrl = pargoiClient.generateAuthUrl(scopes, state)
 
   redirect(authorizationUrl)
