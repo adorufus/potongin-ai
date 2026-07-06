@@ -92,6 +92,26 @@ export function getPargoiClient(useSandboxOverride?: boolean) {
     return response.json();
   };
 
+  // Monkey patch getUserInfo to fetch authenticated user details
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (client as any).getUserInfo = async function (accessToken: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const url = `${(this as any).baseUrl || activeApiBase}/user/info/?fields=avatar_url,display_name,username`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`TikTok getUserInfo failed: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  };
+
   return client;
 }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ExportViewProps {
     onReturnToDashboard: () => void;
@@ -14,7 +14,45 @@ export default function Export({ onReturnToDashboard, onReeditClick, onPageChang
     const [newTagInput, setNewTagInput] = useState('');
     const [showAddTag, setShowAddTag] = useState(false);
 
+    const [tiktokUser, setTiktokUser] = useState<{ username: string; display_name: string; avatar_url: string } | null>(() => {
+        if (typeof window !== 'undefined') {
+            const username = localStorage.getItem('tk_user_username');
+            const display_name = localStorage.getItem('tk_user_display_name');
+            const avatar_url = localStorage.getItem('tk_user_avatar_url');
+            if (username) {
+                return { username, display_name: display_name || '', avatar_url: avatar_url || '' };
+            }
+        }
+        return null;
+    });
+
     const [isTikTokConnected, setIsTikTokConnected] = useState(true);
+
+    useEffect(() => {
+        async function loadUserInfo() {
+            try {
+                const res = await fetch("/api/tiktok/user-info");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.authenticated) {
+                        setTiktokUser({
+                            username: data.username,
+                            display_name: data.display_name,
+                            avatar_url: data.avatar_url,
+                        });
+                        setIsTikTokConnected(true);
+                    } else {
+                        setIsTikTokConnected(false);
+                    }
+                } else {
+                    setIsTikTokConnected(false);
+                }
+            } catch (err) {
+                console.error("Failed loading user info in export page:", err);
+            }
+        }
+        loadUserInfo();
+    }, []);
     const [isPosting, setIsPosting] = useState(false);
     const [isPostedSuccess, setIsPostedSuccess] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -209,16 +247,27 @@ export default function Export({ onReturnToDashboard, onReeditClick, onPageChang
                     <div className="glass-panel p-6 rounded-3xl bg-[#171f33]/40">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-[#010101] flex items-center justify-center rounded-xl overflow-hidden border border-white/10">
-                                    <svg className="w-6 h-6 fill-white" viewBox="0 0 24 24">
-                                        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47V18c0 1.94-.66 3.82-1.88 5.32-1.22 1.5-2.92 2.58-4.78 3.06-1.86.48-3.84.44-5.68-.11-1.84-.55-3.52-1.63-4.74-3.08-1.22-1.45-1.95-3.26-2.09-5.14-.14-1.88.22-3.8.1-5.63 1.18 1.55 2.87 2.72 4.77 3.32 1.9.6 3.94.61 5.85.04 1.91-.57 3.59-1.78 4.75-3.41.05-1.58.01-3.16.02-4.74l-.02-.02c-1.3-.01-2.61.02-3.92-.01l-.01-4.01c1.3.01 2.62-.01 3.92.01l-.01 4z"></path>
-                                    </svg>
+                                <div className="w-10 h-10 rounded-xl overflow-hidden border border-white/10 bg-[#010101] flex items-center justify-center flex-shrink-0">
+                                    {isTikTokConnected && tiktokUser?.avatar_url ? (
+                                        <img
+                                            src={tiktokUser.avatar_url}
+                                            alt={tiktokUser.display_name}
+                                            className="w-full h-full object-cover"
+                                            referrerPolicy="no-referrer"
+                                        />
+                                    ) : (
+                                        <svg className="w-6 h-6 fill-white" viewBox="0 0 24 24">
+                                            <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47V18c0 1.94-.66 3.82-1.88 5.32-1.22 1.5-2.92 2.58-4.78 3.06-1.86.48-3.84.44-5.68-.11-1.84-.55-3.52-1.63-4.74-3.08-1.22-1.45-1.95-3.26-2.09-5.14-.14-1.88.22-3.8.1-5.63 1.18 1.55 2.87 2.72 4.77 3.32 1.9.6 3.94.61 5.85.04 1.91-.57 3.59-1.78 4.75-3.41.05-1.58.01-3.16.02-4.74l-.02-.02c-1.3-.01-2.61.02-3.92-.01l-.01-4.01c1.3.01 2.62-.01 3.92.01l-.01 4z"></path>
+                                        </svg>
+                                    )}
                                 </div>
                                 <div>
-                                    <h4 className="font-bold text-white text-sm">TikTok Account</h4>
+                                    <h4 className="font-bold text-white text-sm">
+                                        {isTikTokConnected && tiktokUser?.display_name ? tiktokUser.display_name : "TikTok Account"}
+                                    </h4>
                                     {isTikTokConnected ? (
                                         <p className="text-xs text-[#cbc3d7]/80">
-                                            Connected as <span className="text-[#4cd7f6] font-semibold">@alex_creativelabs</span>
+                                            Connected as <span className="text-[#4cd7f6] font-semibold">@{tiktokUser?.username || "potongin_creator"}</span>
                                         </p>
                                     ) : (
                                         <p className="text-xs text-[#cbc3d7]/60">Disconnected</p>
@@ -308,7 +357,7 @@ export default function Export({ onReturnToDashboard, onReeditClick, onPageChang
                                 />
                                 <div className="text-left min-w-0">
                                     <p className="font-bold text-white text-sm truncate">Video Posted</p>
-                                    <p className="text-xs text-[#4cd7f6] truncate font-mono">tiktok.com/@alex_creativelabs...</p>
+                                    <p className="text-xs text-[#4cd7f6] truncate font-mono">tiktok.com/@{tiktokUser?.username || "potongin_creator"}...</p>
                                 </div>
                             </div>
                             <button

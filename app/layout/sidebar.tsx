@@ -9,11 +9,12 @@ interface SidebarProps {
   plan: 'Free' | 'Standard' | 'Pro';
   onNewProject: () => void;
   onLogout?: () => void;
+  tiktokUser?: { username: string; display_name: string; avatar_url: string } | null;
 }
 
-export default function Sidebar({ activePage, onPageChange, plan, onNewProject, onLogout }: SidebarProps) {
+export default function Sidebar({ activePage, onPageChange, plan, onNewProject, onLogout, tiktokUser }: SidebarProps) {
 
-  const profileImage = 'https://lh3.googleusercontent.com/aida-public/AB6AXuCqCeJBl-q00DpbWH7Ga7qsytrMS9QliGNlHqn_pPlmmD3coz7lehjW4IltWTUN3rvVi-OpKkYrWxWz5iqZsZRxL2-8KTqHkCgP-bmnMpeEgxZkr547m4UewGtikpDSnp2y9fMOvb9z5i8D41jnaFgLSkA1TbJMqhTkeKvV0BxrCrxvHCC5hJ3uQWikDUYq84fTO0EQRdtEyXgUhSzKoF3KxSSsC_ZIi3nVP1BY-VoJlYV_tBhpoFelYqZWd0vb6tnw7mxUUN9223Vr';
+  const profileImage = tiktokUser?.avatar_url || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCqCeJBl-q00DpbWH7Ga7qsytrMS9QliGNlHqn_pPlmmD3coz7lehjW4IltWTUN3rvVi-OpKkYrWxWz5iqZsZRxL2-8KTqHkCgP-bmnMpeEgxZkr547m4UewGtikpDSnp2y9fMOvb9z5i8D41jnaFgLSkA1TbJMqhTkeKvV0BxrCrxvHCC5hJ3uQWikDUYq84fTO0EQRdtEyXgUhSzKoF3KxSSsC_ZIi3nVP1BY-VoJlYV_tBhpoFelYqZWd0vb6tnw7mxUUN9223Vr';
   const [userName] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('potongin_user_name') ?? 'Undefined Username';
@@ -104,16 +105,24 @@ export default function Sidebar({ activePage, onPageChange, plan, onNewProject, 
         <div className="w-10 h-10 rounded-full overflow-hidden border border-[#d0bcff]/30 bg-[#a078ff] flex items-center justify-center flex-shrink-0">
           <img
             className="w-full h-full object-cover"
-            alt={userName}
+            alt={tiktokUser?.display_name || userName}
             src={profileImage}
             referrerPolicy="no-referrer"
           />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="font-bold text-sm text-white truncate" title={userName}>{userName}</span>
-          <span className="text-xs text-[#cbc3d7] font-mono">
-            {plan} Plan
+          <span className="font-bold text-sm text-white truncate animate-in fade-in duration-300" title={tiktokUser?.display_name || userName}>
+            {tiktokUser?.display_name || userName}
           </span>
+          {tiktokUser?.username ? (
+            <span className="text-[11px] text-[#4cd7f6] font-mono truncate animate-in slide-in-from-bottom-1 duration-300">
+              @{tiktokUser.username}
+            </span>
+          ) : (
+            <span className="text-xs text-[#cbc3d7] font-mono">
+              {plan} Plan
+            </span>
+          )}
         </div>
         {onLogout && (
           <button

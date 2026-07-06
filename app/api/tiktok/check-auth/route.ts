@@ -4,6 +4,23 @@ import { cookies } from "next/headers";
 
 export const runtime = 'nodejs';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchTikTokUserInfo(client: any, accessToken: string) {
+  try {
+    const payload = await client.getUserInfo(accessToken);
+    if (payload?.data?.user) {
+      return {
+        username: payload.data.user.username,
+        display_name: payload.data.user.display_name,
+        avatar_url: payload.data.user.avatar_url,
+      };
+    }
+  } catch (err) {
+    console.warn("Failed fetching TikTok user info in check-auth:", (err as Error).message);
+  }
+  return null;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -33,7 +50,9 @@ export async function GET(req: NextRequest) {
 
     // Safety margin of 5 minutes (300,000 ms) before actual expiration
     if (accessToken && expiresAt > now + 300000) {
-      return NextResponse.json({ authenticated: true });
+      const client = getPargoiClient(useSandbox);
+      const user = await fetchTikTokUserInfo(client, accessToken);
+      return NextResponse.json({ authenticated: true, user });
     }
 
     // Access token is missing or expired, but we have a refresh token
@@ -74,7 +93,9 @@ export async function GET(req: NextRequest) {
           maxAge: 60 * 60 * 24 * 30,
         });
 
-        return NextResponse.json({ authenticated: true, refreshed: true });
+        const user = await fetchTikTokUserInfo(client, tokenPayload.access_token);
+
+        return NextResponse.json({ authenticated: true, refreshed: true, user });
       } catch (refreshErr: unknown) {
         const err = refreshErr as Error;
         console.error("Token auto-refresh failed:", err.message);

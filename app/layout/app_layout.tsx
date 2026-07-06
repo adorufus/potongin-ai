@@ -22,8 +22,47 @@ export default function AppLayout({
     return false;
   });
 
+  interface TikTokUser {
+    username: string;
+    display_name: string;
+    avatar_url: string;
+  }
+
+  const [tiktokUser, setTiktokUser] = useState<TikTokUser | null>(() => {
+    if (typeof window !== "undefined") {
+      const username = localStorage.getItem("tk_user_username");
+      const display_name = localStorage.getItem("tk_user_display_name");
+      const avatar_url = localStorage.getItem("tk_user_avatar_url");
+      if (username) {
+        return { username, display_name: display_name || "", avatar_url: avatar_url || "" };
+      }
+    }
+    return null;
+  });
+
   const [isCheckingAuth, setIsCheckingAuth] = useState<boolean>(true);
   const [authView, setAuthView] = useState<'landing' | 'login' | 'signup'>('landing');
+
+  async function fetchUserInfo() {
+    try {
+      const res = await fetch("/api/tiktok/user-info");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.authenticated) {
+          localStorage.setItem("tk_user_username", data.username || "");
+          localStorage.setItem("tk_user_display_name", data.display_name || "");
+          localStorage.setItem("tk_user_avatar_url", data.avatar_url || "");
+          setTiktokUser({
+            username: data.username || "",
+            display_name: data.display_name || "",
+            avatar_url: data.avatar_url || "",
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed fetching detailed user info:", err);
+    }
+  }
 
   useEffect(() => {
     async function checkAuth() {
@@ -34,14 +73,34 @@ export default function AppLayout({
           if (data.authenticated) {
             localStorage.setItem("tk_access_token", "true");
             setIsTiktokAuthenticated(true);
+            if (data.user) {
+              localStorage.setItem("tk_user_username", data.user.username || "");
+              localStorage.setItem("tk_user_display_name", data.user.display_name || "");
+              localStorage.setItem("tk_user_avatar_url", data.user.avatar_url || "");
+              setTiktokUser({
+                username: data.user.username || "",
+                display_name: data.user.display_name || "",
+                avatar_url: data.user.avatar_url || "",
+              });
+            } else {
+              fetchUserInfo();
+            }
           } else {
             localStorage.removeItem("tk_access_token");
             localStorage.removeItem("potongin_user_name");
+            localStorage.removeItem("tk_user_username");
+            localStorage.removeItem("tk_user_display_name");
+            localStorage.removeItem("tk_user_avatar_url");
+            setTiktokUser(null);
             setIsTiktokAuthenticated(false);
           }
         } else {
           localStorage.removeItem("tk_access_token");
           localStorage.removeItem("potongin_user_name");
+          localStorage.removeItem("tk_user_username");
+          localStorage.removeItem("tk_user_display_name");
+          localStorage.removeItem("tk_user_avatar_url");
+          setTiktokUser(null);
           setIsTiktokAuthenticated(false);
         }
       } catch (err) {
@@ -64,6 +123,7 @@ export default function AppLayout({
         localStorage.setItem("tk_access_token", "true");
         setIsTiktokAuthenticated(true);
         setAuthView('landing');
+        fetchUserInfo();
       }
     };
     window.addEventListener('message', handleMessage);
@@ -80,6 +140,10 @@ export default function AppLayout({
   const handleLogout = () => {
     localStorage.removeItem("tk_access_token");
     localStorage.removeItem("potongin_user_name");
+    localStorage.removeItem("tk_user_username");
+    localStorage.removeItem("tk_user_display_name");
+    localStorage.removeItem("tk_user_avatar_url");
+    setTiktokUser(null);
     
     // Clear cookies as well
     fetch("/api/tiktok/check-auth?logout=true").then(() => {
@@ -131,6 +195,7 @@ export default function AppLayout({
         plan="Free"
         onNewProject={() => { }}
         onLogout={handleLogout}
+        tiktokUser={tiktokUser}
       />
 
       <div className="flex-grow pl-[280px] flex flex-col min-h-screen">
