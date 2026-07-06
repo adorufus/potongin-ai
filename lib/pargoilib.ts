@@ -50,8 +50,8 @@ export function getPargoiClient(useSandboxOverride?: boolean) {
       params.append('code_verifier', codeVerifier);
     }
 
-    // @ts-expect-error - using internal baseUrl property
-    const url = `${this.baseUrl || activeApiBase}/oauth/token/`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const url = `${(this as any).baseUrl || activeApiBase}/oauth/token/`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -61,6 +61,32 @@ export function getPargoiClient(useSandboxOverride?: boolean) {
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`TikTok token exchange failed: ${response.status} - ${errorText}`);
+    }
+
+    return response.json();
+  };
+
+  // Monkey patch refreshAccessToken to handle standard OAuth refresh token flow
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (client as any).refreshAccessToken = async function (refreshToken: string) {
+    const params = new URLSearchParams({
+      client_key: clientKey,
+      client_secret: clientSecret,
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const url = `${(this as any).baseUrl || activeApiBase}/oauth/token/`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`TikTok token refresh failed: ${response.status} - ${errorText}`);
     }
 
     return response.json();

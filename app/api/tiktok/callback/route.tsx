@@ -73,7 +73,33 @@ export async function GET(req: NextRequest) {
         const client = getPargoiClient(useSandbox);
         // @ts-expect-error - we monkey-patched getAccessToken to accept codeVerifier as secondary parameter
         const tokenPayload = await client.getAccessToken(code, codeVerifier);
+        
+        const expiresAt = Date.now() + (tokenPayload.expires_in || 86400) * 1000;
+
         cookieStore.set('tk_access_token', tokenPayload.access_token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 60 * 60 * 24 * 30, // 30 days
+        });
+
+        if (tokenPayload.refresh_token) {
+            cookieStore.set('tk_refresh_token', tokenPayload.refresh_token, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'none',
+                maxAge: 60 * 60 * 24 * 365, // 1 year
+            });
+        }
+
+        cookieStore.set('tk_expires_at', expiresAt.toString(), {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+            maxAge: 60 * 60 * 24 * 30, // 30 days
+        });
+
+        cookieStore.set('tk_use_sandbox', useSandbox ? 'true' : 'false', {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
